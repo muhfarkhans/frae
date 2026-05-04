@@ -11,7 +11,8 @@ services:
       - /app/node_modules
       - /app/.next
     environment:
-      NEXT_PUBLIC_API_URL: http://nginx/api
+      NEXT_PUBLIC_API_URL: http://localhost:8080/api
+      # NEXT_PUBLIC_API_URL: http://nginx/api
     depends_on:
       - nginx
     networks:
