@@ -2,6 +2,20 @@
 
 import { ReactNode, useMemo, useState } from "react";
 import {
+  type ColumnDef,
+  type ColumnFiltersState,
+  type FilterFn,
+  type PaginationState,
+  type RowData,
+  type SortingState,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -21,7 +35,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-type SortDirection = "asc" | "desc";
+declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColumnMeta<TData extends RowData, TValue> {
+    className?: string;
+    headerClassName?: string;
+  }
+}
 
 export type DataTableColumn<TData> = {
   id: string;
@@ -65,15 +85,12 @@ function normalizeValue(value: unknown) {
 function compareValues(
   first: string | number | boolean | null | undefined,
   second: string | number | boolean | null | undefined,
-  direction: SortDirection,
 ) {
-  const multiplier = direction === "asc" ? 1 : -1;
-
   if (typeof first === "number" && typeof second === "number") {
-    return (first - second) * multiplier;
+    return first - second;
   }
 
-  return String(first ?? "").localeCompare(String(second ?? "")) * multiplier;
+  return String(first ?? "").localeCompare(String(second ?? ""));
 }
 
 export function DataTable<TData>({
@@ -89,91 +106,119 @@ export function DataTable<TData>({
   getRowId,
   getSearchValue,
 }: DataTableProps<TData>) {
-  const [search, setSearch] = useState("");
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-  const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(initialPageSize);
-  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: initialPageSize,
+  });
 
-  const activeFilterCount =
-    Number(Boolean(search)) +
-    Object.values(filterValues).filter(Boolean).length;
+  const globalFilterFn = useMemo<FilterFn<TData>>(
+    () => (row, _columnId, filterValue) => {
+      const searchTerm = normalizeValue(filterValue).trim();
 
-  const processedRows = useMemo(() => {
-    const searchTerm = search.trim().toLowerCase();
+      if (!searchTerm) {
+        return true;
+      }
 
-    const filteredRows = data.filter((row) => {
-      const matchesSearch =
-        !searchTerm ||
-        normalizeValue(
-          getSearchValue
-            ? getSearchValue(row)
-            : columns
-                .map((column) => column.accessor?.(row))
-                .filter((value) => value !== undefined && value !== null)
-                .join(" "),
-        ).includes(searchTerm);
+      const value = getSearchValue
+        ? getSearchValue(row.original)
+        : columns
+            .map((column) => column.accessor?.(row.original))
+            .filter((item) => item !== undefined && item !== null)
+            .join(" ");
 
-      const matchesFilters = filters.every((filter) => {
-        const value = filterValues[filter.id];
+      return normalizeValue(value).includes(searchTerm);
+    },
+    [columns, getSearchValue],
+  );
 
-        return !value || filter.predicate(row, value);
-      });
+  const tanstackColumns = useMemo<ColumnDef<TData>[]>(
+    () => [
+      ...columns.map<ColumnDef<TData>>((column) => {
+        const matchingFilter = filters.find((filter) => filter.id === column.id);
 
-      return matchesSearch && matchesFilters;
-    });
+        return {
+          id: column.id,
+          accessorFn: (row) => (column.sortValue || column.accessor)?.(row) ?? "",
+          header: () => column.header,
+          cell: ({ row }) => column.cell(row.original),
+          enableSorting: column.enableSorting !== false,
+          sortingFn: (first, second) =>
+            compareValues(
+              (column.sortValue || column.accessor)?.(first.original),
+              (column.sortValue || column.accessor)?.(second.original),
+            ),
+          filterFn: matchingFilter
+            ? (row, _columnId, value) =>
+                matchingFilter.predicate(row.original, String(value))
+            : "auto",
+          meta: {
+            className: column.className,
+            headerClassName: column.headerClassName,
+          },
+        };
+      }),
+      ...filters
+        .filter((filter) => !columns.some((column) => column.id === filter.id))
+        .map<ColumnDef<TData>>((filter) => ({
+          id: filter.id,
+          accessorFn: () => "",
+          header: () => null,
+          cell: () => null,
+          enableHiding: true,
+          filterFn: (row, _columnId, value) =>
+            filter.predicate(row.original, String(value)),
+        })),
+    ],
+    [columns, filters],
+  );
 
-    if (!sortColumn) {
-      return filteredRows;
-    }
-
-    const column = columns.find((item) => item.id === sortColumn);
-
-    if (!column) {
-      return filteredRows;
-    }
-
-    return [...filteredRows].sort((first, second) =>
-      compareValues(
-        (column.sortValue || column.accessor)?.(first),
-        (column.sortValue || column.accessor)?.(second),
-        sortDirection,
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const table = useReactTable({
+    data,
+    columns: tanstackColumns,
+    state: {
+      sorting,
+      columnFilters,
+      globalFilter,
+      pagination,
+      columnVisibility: Object.fromEntries(
+        filters
+          .filter((filter) => !columns.some((column) => column.id === filter.id))
+          .map((filter) => [filter.id, false]),
       ),
-    );
-  }, [columns, data, filterValues, filters, getSearchValue, search, sortColumn, sortDirection]);
+    },
+    getRowId: (row, index) => String(getRowId(row, index)),
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: setPagination,
+    globalFilterFn,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+  });
 
-  const totalPages = Math.max(1, Math.ceil(processedRows.length / pageSize));
-  const safePageIndex = Math.min(pageIndex, totalPages - 1);
-  const start = safePageIndex * pageSize;
-  const paginatedRows = processedRows.slice(start, start + pageSize);
+  const visibleColumns = table.getVisibleLeafColumns();
+  const filteredRowCount = table.getFilteredRowModel().rows.length;
+  const pageRows = table.getRowModel().rows;
+  const activeFilterCount =
+    Number(Boolean(globalFilter)) +
+    columnFilters.filter((filter) => Boolean(filter.value)).length;
+  const start = pagination.pageIndex * pagination.pageSize;
 
-  function updateSort(column: DataTableColumn<TData>) {
-    if (column.enableSorting === false) {
-      return;
-    }
-
-    setPageIndex(0);
-
-    if (sortColumn !== column.id) {
-      setSortColumn(column.id);
-      setSortDirection("asc");
-      return;
-    }
-
-    if (sortDirection === "asc") {
-      setSortDirection("desc");
-      return;
-    }
-
-    setSortColumn(null);
-    setSortDirection("asc");
+  function setFilterValue(filterId: string, value: string) {
+    table.getColumn(filterId)?.setFilterValue(value || undefined);
+    table.setPageIndex(0);
   }
 
   function resetFilters() {
-    setSearch("");
-    setFilterValues({});
-    setPageIndex(0);
+    table.resetGlobalFilter();
+    table.resetColumnFilters();
+    table.setPageIndex(0);
   }
 
   return (
@@ -185,10 +230,10 @@ export function DataTable<TData>({
             <Input
               className="h-9 pl-8"
               placeholder={searchPlaceholder}
-              value={search}
+              value={globalFilter}
               onChange={(event) => {
-                setSearch(event.target.value);
-                setPageIndex(0);
+                table.setGlobalFilter(event.target.value);
+                table.setPageIndex(0);
               }}
             />
           </div>
@@ -197,14 +242,10 @@ export function DataTable<TData>({
             <select
               key={filter.id}
               className="h-9 rounded-lg border border-input bg-background px-2.5 text-sm"
-              value={filterValues[filter.id] || ""}
-              onChange={(event) => {
-                setFilterValues((values) => ({
-                  ...values,
-                  [filter.id]: event.target.value,
-                }));
-                setPageIndex(0);
-              }}
+              value={
+                (table.getColumn(filter.id)?.getFilterValue() as string) || ""
+              }
+              onChange={(event) => setFilterValue(filter.id, event.target.value)}
             >
               <option value="">{filter.label}</option>
               {filter.options.map((option) => (
@@ -229,54 +270,72 @@ export function DataTable<TData>({
       <div className="overflow-hidden rounded-lg border bg-background">
         <Table>
           <TableHeader>
-            <TableRow>
-              {columns.map((column) => {
-                const sortable = column.enableSorting !== false;
-                const active = sortColumn === column.id;
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  const className =
+                    header.column.columnDef.meta?.headerClassName;
 
-                return (
-                  <TableHead
-                    key={column.id}
-                    className={column.headerClassName}
-                  >
-                    {sortable ? (
-                      <button
-                        type="button"
-                        onClick={() => updateSort(column)}
-                        className="flex h-8 items-center gap-1 text-left font-medium"
-                      >
-                        {column.header}
-                        <span
-                          className={cn(
-                            "text-xs text-muted-foreground",
-                            active && "text-foreground",
-                          )}
+                  return (
+                    <TableHead key={header.id} className={className}>
+                      {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                        <button
+                          type="button"
+                          onClick={header.column.getToggleSortingHandler()}
+                          className="flex h-8 items-center gap-1 text-left font-medium"
                         >
-                          {active ? (sortDirection === "asc" ? "↑" : "↓") : "↕"}
-                        </span>
-                      </button>
-                    ) : (
-                      column.header
-                    )}
-                  </TableHead>
-                );
-              })}
-            </TableRow>
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                          <span
+                            className={cn(
+                              "text-xs text-muted-foreground",
+                              header.column.getIsSorted() && "text-foreground",
+                            )}
+                          >
+                            {{
+                              asc: "↑",
+                              desc: "↓",
+                            }[header.column.getIsSorted() as string] || "↕"}
+                          </span>
+                        </button>
+                      ) : (
+                        flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )
+                      )}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            ))}
           </TableHeader>
           <TableBody>
-            {paginatedRows.length ? (
-              paginatedRows.map((row, index) => (
-                <TableRow key={getRowId(row, start + index)}>
-                  {columns.map((column) => (
-                    <TableCell key={column.id} className={column.className}>
-                      {column.cell(row)}
-                    </TableCell>
-                  ))}
+            {pageRows.length ? (
+              pageRows.map((row) => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map((cell) => {
+                    const className = cell.column.columnDef.meta?.className;
+
+                    return (
+                      <TableCell key={cell.id} className={className}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-32 text-center">
+                <TableCell
+                  colSpan={visibleColumns.length}
+                  className="h-32 text-center"
+                >
                   <div className="font-medium">{emptyTitle}</div>
                   <div className="mt-1 text-sm text-muted-foreground">
                     {emptyDescription}
@@ -290,20 +349,17 @@ export function DataTable<TData>({
 
       <div className="flex flex-col gap-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
         <div>
-          Showing {processedRows.length ? start + 1 : 0}-
-          {Math.min(start + pageSize, processedRows.length)} of{" "}
-          {processedRows.length} rows
+          Showing {filteredRowCount ? start + 1 : 0}-
+          {Math.min(start + pagination.pageSize, filteredRowCount)} of{" "}
+          {filteredRowCount} rows
         </div>
 
         <div className="flex items-center gap-2">
           <span>Rows</span>
           <select
             className="h-8 rounded-lg border border-input bg-background px-2 text-sm"
-            value={pageSize}
-            onChange={(event) => {
-              setPageSize(Number(event.target.value));
-              setPageIndex(0);
-            }}
+            value={pagination.pageSize}
+            onChange={(event) => table.setPageSize(Number(event.target.value))}
           >
             {pageSizeOptions.map((option) => (
               <option key={option} value={option}>
@@ -312,40 +368,38 @@ export function DataTable<TData>({
             ))}
           </select>
           <span>
-            Page {safePageIndex + 1} of {totalPages}
+            Page {pagination.pageIndex + 1} of {table.getPageCount() || 1}
           </span>
           <div className="flex gap-1">
             <Button
               variant="outline"
               size="icon-sm"
-              disabled={safePageIndex === 0}
-              onClick={() => setPageIndex(0)}
+              disabled={!table.getCanPreviousPage()}
+              onClick={() => table.setPageIndex(0)}
             >
               <ChevronsLeft />
             </Button>
             <Button
               variant="outline"
               size="icon-sm"
-              disabled={safePageIndex === 0}
-              onClick={() => setPageIndex((page) => Math.max(0, page - 1))}
+              disabled={!table.getCanPreviousPage()}
+              onClick={() => table.previousPage()}
             >
               <ChevronLeft />
             </Button>
             <Button
               variant="outline"
               size="icon-sm"
-              disabled={safePageIndex >= totalPages - 1}
-              onClick={() =>
-                setPageIndex((page) => Math.min(totalPages - 1, page + 1))
-              }
+              disabled={!table.getCanNextPage()}
+              onClick={() => table.nextPage()}
             >
               <ChevronRight />
             </Button>
             <Button
               variant="outline"
               size="icon-sm"
-              disabled={safePageIndex >= totalPages - 1}
-              onClick={() => setPageIndex(totalPages - 1)}
+              disabled={!table.getCanNextPage()}
+              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
             >
               <ChevronsRight />
             </Button>
