@@ -126,6 +126,10 @@ function getInitials(name?: string) {
 function getPageTitle(pathname: string) {
   const activeMenu = menus.find((menu) => menu.href === pathname);
 
+  if (pathname === "/dashboard/users-roles") {
+    return "Users & Roles";
+  }
+
   return activeMenu?.title || "Dashboard";
 }
 
@@ -227,18 +231,30 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <SidebarGroupLabel>Core Data</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {[
-                    ["Company", Building2],
-                    ["Departments", Boxes],
-                    ["Users & Roles", Users],
-                  ].map(([label, Icon]) => (
-                    <SidebarMenuItem key={label as string}>
-                      <SidebarMenuButton tooltip={label as string}>
-                        <Icon className="size-4" />
-                        <span>{label as string}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton tooltip="Company">
+                      <Building2 />
+                      <span>Company</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton tooltip="Departments">
+                      <Boxes />
+                      <span>Departments</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={pathname === "/dashboard/users-roles"}
+                      tooltip="Users & Roles"
+                    >
+                      <Link href="/dashboard/users-roles">
+                        <Users />
+                        <span>Users & Roles</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
