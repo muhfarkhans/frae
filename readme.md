@@ -50,13 +50,31 @@ frae/
 docker compose up -d
 ```
 
-2. Siapkan environment Laravel jika belum ada.
+2. Siapkan root environment Docker Compose jika belum ada.
+
+```bash
+cp .env.example .env
+```
+
+Isi nilai rahasia di root `.env`, terutama:
+
+```env
+POSTGRES_DB=frae_db
+POSTGRES_USER=frae_user
+POSTGRES_PASSWORD=isi-password-kuat
+MINIO_ROOT_USER=frae_minio
+MINIO_ROOT_PASSWORD=isi-password-minio-kuat
+```
+
+File root `.env` tidak ikut commit karena sudah masuk `.gitignore`.
+
+3. Siapkan environment Laravel jika belum ada.
 
 ```bash
 cp apps/api/.env.example apps/api/.env
 ```
 
-3. Sesuaikan database Laravel di `apps/api/.env`.
+4. Sesuaikan database Laravel di `apps/api/.env` jika menjalankan Laravel tanpa env Docker Compose.
 
 ```env
 APP_NAME=Frae
@@ -68,27 +86,27 @@ SANCTUM_STATEFUL_DOMAINS=frae.cojimozy.com
 DB_CONNECTION=pgsql
 DB_HOST=postgres
 DB_PORT=5432
-DB_DATABASE=erp_db
-DB_USERNAME=erp_user
-DB_PASSWORD=erp_password
+DB_DATABASE=frae_db
+DB_USERNAME=frae_user
+DB_PASSWORD=isi-password-yang-sama-dengan-POSTGRES_PASSWORD
 
 REDIS_HOST=redis
 ```
 
-4. Install dependency backend dan generate app key.
+5. Install dependency backend dan generate app key.
 
 ```bash
 docker compose exec api composer install
 docker compose exec api php artisan key:generate
 ```
 
-5. Jalankan migration dan seeder.
+6. Jalankan migration dan seeder.
 
 ```bash
 docker compose exec api php artisan migrate --seed
 ```
 
-6. Buka aplikasi.
+7. Buka aplikasi.
 
 - Frontend: http://localhost:3000
 - API health check: https://frae-api.cojimozy.com/api/health
@@ -275,6 +293,48 @@ npx tsc --noEmit
 - `apps/web` memiliki repository Git sendiri di dalam folder web. Periksa status Git di root dan di `apps/web` jika ingin commit perubahan frontend.
 
 ## Troubleshooting
+
+### PostgreSQL password authentication failed
+
+Gejala umum:
+
+```txt
+SQLSTATE[08006] [7] connection to server at "postgres", port 5432 failed:
+FATAL: password authentication failed for user "frae_user"
+```
+
+Penyebab paling umum:
+
+- `POSTGRES_USER` atau `POSTGRES_PASSWORD` di root `.env` tidak sama dengan `DB_USERNAME` atau `DB_PASSWORD` yang dipakai container API.
+- Volume `erp_postgres_data` sudah pernah dibuat dengan credential lama. Mengubah `POSTGRES_PASSWORD` di `.env` tidak otomatis mengubah password user di database yang sudah ada.
+
+Solusi aman tanpa hapus data:
+
+```bash
+docker compose exec postgres psql -U postgres -d postgres
+```
+
+Lalu di prompt PostgreSQL:
+
+```sql
+ALTER USER frae_user WITH PASSWORD 'password-yang-sama-dengan-root-env';
+```
+
+Jika user `postgres` tidak tersedia, masuk dengan user lama yang masih valid lalu jalankan `ALTER USER` untuk user aplikasi.
+
+Solusi reset total khusus database kosong atau development:
+
+```bash
+docker compose down
+docker volume rm frae_erp_postgres_data
+docker compose up -d postgres
+```
+
+Nama volume bisa berbeda. Cek dengan:
+
+```bash
+docker volume ls
+```
 
 ### Runtime TypeError di `apps/web/src/lib/api.ts`
 

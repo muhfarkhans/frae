@@ -33,6 +33,14 @@ jobs:
             git fetch origin master
             git reset --hard origin/master
 
+            if [ ! -f .env ]; then
+              echo "Missing root .env on VPS. Create it from .env.example and fill POSTGRES_PASSWORD/MINIO_ROOT_PASSWORD."
+              exit 1
+            fi
+
+            echo "Validate Docker Compose configuration..."
+            docker compose config --quiet
+
             echo "Build containers..."
             docker compose build
 

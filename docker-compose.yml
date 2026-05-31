@@ -11,8 +11,8 @@ services:
       - /app/node_modules
       - /app/.next
     environment:
-      NEXT_PUBLIC_API_URL: https://frae-api.cojimozy.com/api
-      API_INTERNAL_URL: https://frae-api.cojimozy.com/api
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://frae-api.cojimozy.com/api}
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-https://frae-api.cojimozy.com/api}
     depends_on:
       - nginx
     networks:
@@ -30,10 +30,17 @@ services:
       - postgres
       - redis
     environment:
-      APP_URL: https://frae-api.cojimozy.com
-      FRONTEND_URL: https://frae.cojimozy.com
-      CORS_ALLOWED_ORIGINS: https://frae.cojimozy.com
-      SANCTUM_STATEFUL_DOMAINS: frae.cojimozy.com
+      APP_URL: ${APP_URL:-https://frae-api.cojimozy.com}
+      FRONTEND_URL: ${FRONTEND_URL:-https://frae.cojimozy.com}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://frae.cojimozy.com}
+      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-frae.cojimozy.com}
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB:?Set POSTGRES_DB in root .env}
+      DB_USERNAME: ${POSTGRES_USER:?Set POSTGRES_USER in root .env}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in root .env}
+      REDIS_HOST: redis
     networks:
       - erp_network
 
@@ -56,9 +63,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: erp_db
-      POSTGRES_USER: erp_user
-      POSTGRES_PASSWORD: erp_password
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in root .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in root .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in root .env}
     volumes:
       - erp_postgres_data:/var/lib/postgresql/data
     networks:
@@ -79,8 +86,8 @@ services:
       - "9000:9000"
       - "9001:9001"
     environment:
-      MINIO_ROOT_USER: erp_minio
-      MINIO_ROOT_PASSWORD: erp_minio_password
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in root .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in root .env}
     volumes:
       - erp_minio_data:/data
     command: server /data --console-address ":9001"
