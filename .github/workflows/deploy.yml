@@ -50,13 +50,15 @@ jobs:
             echo "Install Laravel dependencies..."
             docker compose exec -T api composer install --no-dev --optimize-autoloader
 
+            echo "Clear Laravel cache before database commands..."
+            docker compose exec -T api php artisan config:clear
+            docker compose exec -T api php artisan route:clear
+            docker compose exec -T api php artisan view:clear
+
             echo "Run Laravel migrations..."
             docker compose exec -T api php artisan migrate --force
 
             echo "Refresh Laravel cache..."
-            docker compose exec -T api php artisan config:clear
-            docker compose exec -T api php artisan route:clear
-            docker compose exec -T api php artisan view:clear
             docker compose exec -T api php artisan config:cache
             docker compose exec -T api php artisan route:cache
             docker compose exec -T api php artisan view:cache
