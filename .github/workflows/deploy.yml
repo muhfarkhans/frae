@@ -29,6 +29,10 @@ jobs:
 
             cd ${{ secrets.VPS_PROJECT_PATH }}
 
+            echo "Restore deploy user ownership before git reset..."
+            sudo -n chown -R "$(id -u):$(id -g)" apps/api/storage apps/api/bootstrap/cache 2>/dev/null || true
+            docker compose exec -T --user root api chown -R "$(id -u):$(id -g)" storage bootstrap/cache 2>/dev/null || true
+
             echo "Reset code to latest master..."
             git fetch origin master
             git reset --hard origin/master
@@ -63,8 +67,8 @@ jobs:
             docker compose exec -T api php artisan route:cache
             docker compose exec -T api php artisan view:cache
 
-            echo "Fix permissions..."
-            docker compose exec -T api chown -R www-data:www-data storage bootstrap/cache
+            echo "Fix writable Laravel directories..."
+            docker compose exec -T --user root api sh -lc "mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache && chmod -R ug+rwX storage bootstrap/cache"
 
             echo "Restart application services..."
             docker compose restart api nginx web
