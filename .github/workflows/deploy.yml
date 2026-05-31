@@ -3,7 +3,7 @@ name: Deploy Frae to VPS
 on:
   push:
     branches:
-      - main
+      - master
   workflow_dispatch:
 
 concurrency:
@@ -30,7 +30,7 @@ jobs:
             cd ${{ secrets.VPS_PROJECT_PATH }}
 
             echo "Pull latest code..."
-            git pull origin main
+            git pull origin master
 
             echo "Build containers..."
             docker compose build
