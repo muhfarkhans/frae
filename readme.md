@@ -60,7 +60,10 @@ cp apps/api/.env.example apps/api/.env
 
 ```env
 APP_NAME=Frae
-APP_URL=http://localhost:8080
+APP_URL=https://frae-api.cojimozy.com
+FRONTEND_URL=https://frae.cojimozy.com
+CORS_ALLOWED_ORIGINS=https://frae.cojimozy.com
+SANCTUM_STATEFUL_DOMAINS=frae.cojimozy.com
 
 DB_CONNECTION=pgsql
 DB_HOST=postgres
@@ -88,7 +91,7 @@ docker compose exec api php artisan migrate --seed
 6. Buka aplikasi.
 
 - Frontend: http://localhost:3000
-- API health check: http://localhost:8080/api/health
+- API health check: https://frae-api.cojimozy.com/api/health
 - MinIO console: http://localhost:9001
 
 ## Akun Default
@@ -105,8 +108,8 @@ Password: password
 Frontend memakai dua URL API karena konteks browser dan container berbeda.
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8080/api
-API_INTERNAL_URL=http://nginx/api
+NEXT_PUBLIC_API_URL=https://frae-api.cojimozy.com/api
+API_INTERNAL_URL=https://frae-api.cojimozy.com/api
 ```
 
 - `NEXT_PUBLIC_API_URL` dipakai browser/client component.
@@ -144,7 +147,7 @@ Route awal tersedia di `apps/api/routes/api.php`.
 Contoh login:
 
 ```bash
-curl -X POST http://localhost:8080/api/auth/login \
+curl -X POST https://frae-api.cojimozy.com/api/auth/login \
   -H "Accept: application/json" \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@frae.test","password":"password"}'
@@ -268,7 +271,7 @@ npx tsc --noEmit
 
 - Next.js 16 membutuhkan Node.js `>=20.9.0`. Docker frontend sudah memakai Node 22.
 - Jika menjalankan frontend langsung dari host, gunakan Node 20.9 atau lebih baru.
-- `localhost` dari browser mengarah ke host machine, tetapi `localhost` dari container mengarah ke container itu sendiri. Karena itu frontend Docker membutuhkan `API_INTERNAL_URL=http://nginx/api` untuk Server Component.
+- Production frontend memakai `NEXT_PUBLIC_API_URL=https://frae-api.cojimozy.com/api`.
 - `apps/web` memiliki repository Git sendiri di dalam folder web. Periksa status Git di root dan di `apps/web` jika ingin commit perubahan frontend.
 
 ## Troubleshooting
@@ -279,12 +282,12 @@ Gejala umum:
 
 - halaman `/` gagal render,
 - error fetch dari Server Component,
-- API sebenarnya hidup di `localhost:8080`.
+- API production hidup di `https://frae-api.cojimozy.com/api`.
 
 Penyebab:
 
 - Server Component Next.js berjalan di container `web`.
-- `http://localhost:8080/api` dari dalam container bukan Nginx host, sehingga koneksi gagal.
+- Environment frontend masih mengarah ke API lama atau Laravel config cache belum direfresh.
 
 Solusi:
 
@@ -292,8 +295,8 @@ Solusi:
 
 ```yaml
 environment:
-  NEXT_PUBLIC_API_URL: http://localhost:8080/api
-  API_INTERNAL_URL: http://nginx/api
+  NEXT_PUBLIC_API_URL: https://frae-api.cojimozy.com/api
+  API_INTERNAL_URL: https://frae-api.cojimozy.com/api
 ```
 
 - Recreate service web:
@@ -305,5 +308,5 @@ docker compose up -d web
 - Tes dari container web:
 
 ```bash
-docker compose exec web node -e "fetch('http://nginx/api/health').then(r=>r.text()).then(console.log)"
+docker compose exec web node -e "fetch('https://frae-api.cojimozy.com/api/health').then(r=>r.text()).then(console.log)"
 ```

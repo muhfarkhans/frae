@@ -11,8 +11,8 @@ services:
       - /app/node_modules
       - /app/.next
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8080/api
-      API_INTERNAL_URL: http://nginx/api
+      NEXT_PUBLIC_API_URL: https://frae-api.cojimozy.com/api
+      API_INTERNAL_URL: https://frae-api.cojimozy.com/api
     depends_on:
       - nginx
     networks:
@@ -29,6 +29,11 @@ services:
     depends_on:
       - postgres
       - redis
+    environment:
+      APP_URL: https://frae-api.cojimozy.com
+      FRONTEND_URL: https://frae.cojimozy.com
+      CORS_ALLOWED_ORIGINS: https://frae.cojimozy.com
+      SANCTUM_STATEFUL_DOMAINS: frae.cojimozy.com
     networks:
       - erp_network
 

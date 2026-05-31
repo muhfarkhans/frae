@@ -1,4 +1,4 @@
-const DEFAULT_API_URL = "http://localhost:8080/api";
+const DEFAULT_API_URL = "https://frae-api.cojimozy.com/api";
 
 type ApiOptions = RequestInit & {
   token?: string;

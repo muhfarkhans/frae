@@ -55,8 +55,8 @@ jobs:
             echo "Fix permissions..."
             docker compose exec -T api chown -R www-data:www-data storage bootstrap/cache
 
-            echo "Restart workers..."
-            docker compose restart queue scheduler
+            echo "Restart application services..."
+            docker compose restart api nginx web
 
             echo "Clean unused Docker images..."
             docker image prune -f

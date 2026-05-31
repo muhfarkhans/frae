@@ -8,10 +8,10 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
-        'http://localhost:3000',
-        'http://web:3000',
-    ],
+    'allowed_origins' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', env('CORS_ALLOWED_ORIGINS', 'https://frae.cojimozy.com'))
+    ))),
 
     'allowed_origins_patterns' => [],
 
