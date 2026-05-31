@@ -36,8 +36,8 @@ type LoginResponse = {
 export default function LoginPage() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("admin@frae.test");
-  const [password, setPassword] = useState("password");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -180,11 +180,6 @@ export default function LoginPage() {
             </form>
 
             <Separator className="my-5" />
-
-            <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
-              <p className="font-medium text-foreground">Akun demo</p>
-              <p className="mt-1">admin@frae.test / password</p>
-            </div>
           </CardContent>
         </Card>
       </div>
