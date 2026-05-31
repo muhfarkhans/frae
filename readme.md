@@ -128,6 +128,18 @@ Route awal tersedia di `apps/api/routes/api.php`.
 | POST | `/api/auth/login` | Tidak | Login dan membuat Sanctum token |
 | GET | `/api/auth/me` | Sanctum | Data user saat ini |
 | POST | `/api/auth/logout` | Sanctum | Hapus token aktif |
+| GET | `/api/core/organization` | Sanctum + permission | Data company, department, dan position |
+| POST/PUT | `/api/core/companies` | Sanctum + permission | Create/update company |
+| POST/PUT | `/api/core/departments` | Sanctum + permission | Create/update department |
+| POST/PUT | `/api/core/positions` | Sanctum + permission | Create/update position |
+| GET | `/api/core/users-roles` | Sanctum + permission | Data users, roles, permissions, dan scope organisasi |
+| GET | `/api/inventory/master` | Sanctum + permission | Data item, category, unit, warehouse, dan company |
+| POST/PUT | `/api/inventory/items` | Sanctum + permission | Create/update item master |
+| POST/PUT | `/api/inventory/categories` | Sanctum + permission | Create/update item category |
+| POST/PUT | `/api/inventory/units` | Sanctum + permission | Create/update unit of measure |
+| POST/PUT | `/api/inventory/warehouses` | Sanctum + permission | Create/update warehouse |
+| GET/POST | `/api/inventory/stock-movements` | Sanctum + permission | List/create stock movement |
+| GET | `/api/inventory/stock-card` | Sanctum + permission | Kartu stok per item dan optional warehouse |
 
 Contoh login:
 
@@ -149,6 +161,7 @@ Fondasi ERP awal berada di `apps/api/app/Modules/Core`.
 - AuditLog: log perubahan atau aktivitas.
 - NumberSequence: konfigurasi nomor dokumen.
 - Auth: login, user saat ini, dan logout.
+- Organization: CRUD company, department, dan position.
 
 Migration core membuat tabel:
 
@@ -166,9 +179,30 @@ Seeder awal membuat:
 
 - Company `MAIN`
 - Department `IT`
+- Unit `PCS`
+- Item Category `GENERAL`
+- Warehouse `MAIN`
 - Role `super-admin`
 - Permission awal untuk `core` dan `inventory`
 - User `admin@frae.test`
+
+## Modul Inventory
+
+Modul Inventory awal berada di `apps/api/app/Modules/Inventory`.
+
+- Item: master SKU, category, unit, item type, minimum stock, dan status tracking stock.
+- ItemCategory: grouping item.
+- Unit: satuan transaksi dengan precision.
+- Warehouse: lokasi penyimpanan per company.
+- StockMovement: ledger transaksi stok untuk opening, in, out, dan adjustment.
+
+Migration inventory membuat tabel:
+
+- `item_categories`
+- `units`
+- `warehouses`
+- `items`
+- `stock_movements`
 
 ## Frontend
 
@@ -185,6 +219,8 @@ Halaman awal yang tersedia:
 - `/dashboard/manufacturing`
 - `/dashboard/projects`
 - `/dashboard/settings`
+- `/dashboard/organization`
+- `/dashboard/users-roles`
 
 Helper API frontend berada di `apps/web/src/lib/api.ts`. Helper ini menangani:
 

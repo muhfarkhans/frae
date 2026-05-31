@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Boxes,
   Building2,
   ChevronsUpDown,
   ClipboardList,
@@ -60,6 +59,7 @@ type AuthUser = {
   id: number;
   name: string;
   email: string;
+  permissions: string[];
 };
 
 const menus = [
@@ -67,11 +67,13 @@ const menus = [
     title: "Dashboard",
     href: "/dashboard",
     icon: Home,
+    permission: "view-dashboard",
   },
   {
     title: "Inventory",
     href: "/dashboard/inventory",
     icon: Package,
+    permission: "view-item",
   },
   {
     title: "Purchasing",
@@ -126,6 +128,10 @@ function getInitials(name?: string) {
 function getPageTitle(pathname: string) {
   const activeMenu = menus.find((menu) => menu.href === pathname);
 
+  if (pathname === "/dashboard/organization") {
+    return "Organization";
+  }
+
   if (pathname === "/dashboard/users-roles") {
     return "Users & Roles";
   }
@@ -139,6 +145,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
 
   const pageTitle = useMemo(() => getPageTitle(pathname), [pathname]);
+  const permissions = useMemo(
+    () => new Set(user?.permissions || []),
+    [user?.permissions],
+  );
+  const can = (permission: string) =>
+    permissions.has(permission) || permissions.has("*");
+  const visibleMenus = user
+    ? menus.filter((menu) => !menu.permission || can(menu.permission))
+    : menus;
 
   useEffect(() => {
     const token = localStorage.getItem("erp_token");
@@ -202,7 +217,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <SidebarGroupLabel>Platform</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {menus.map((menu) => {
+                  {visibleMenus.map((menu) => {
                     const Icon = menu.icon;
                     const active = pathname === menu.href;
 
@@ -231,30 +246,34 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <SidebarGroupLabel>Core Data</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton tooltip="Company">
-                      <Building2 />
-                      <span>Company</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton tooltip="Departments">
-                      <Boxes />
-                      <span>Departments</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname === "/dashboard/users-roles"}
-                      tooltip="Users & Roles"
-                    >
-                      <Link href="/dashboard/users-roles">
-                        <Users />
-                        <span>Users & Roles</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  {can("view-organization") && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname === "/dashboard/organization"}
+                        tooltip="Organization"
+                      >
+                        <Link href="/dashboard/organization">
+                          <Building2 />
+                          <span>Organization</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
+                  {can("view-user") && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname === "/dashboard/users-roles"}
+                        tooltip="Users & Roles"
+                      >
+                        <Link href="/dashboard/users-roles">
+                          <Users />
+                          <span>Users & Roles</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>

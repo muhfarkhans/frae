@@ -1,30 +1,29 @@
 <?php
 
-namespace App\Modules\Core\Company\Models;
+namespace App\Modules\Inventory\Unit\Models;
 
-use App\Modules\Core\Department\Models\Department;
+use App\Modules\Inventory\Item\Models\Item;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Company extends Model
+class Unit extends Model
 {
     use SoftDeletes;
 
     protected $fillable = [
         'code',
         'name',
-        'address',
-        'phone',
-        'email',
+        'precision',
         'is_active',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'precision' => 'integer',
     ];
 
-    public function departments()
+    public function items()
     {
-        return $this->hasMany(Department::class);
+        return $this->hasMany(Item::class);
     }
 }

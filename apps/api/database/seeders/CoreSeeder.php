@@ -7,6 +7,9 @@ use App\Modules\Core\Company\Models\Company;
 use App\Modules\Core\Department\Models\Department;
 use App\Modules\Core\Permission\Models\Permission;
 use App\Modules\Core\Role\Models\Role;
+use App\Modules\Inventory\ItemCategory\Models\ItemCategory;
+use App\Modules\Inventory\Unit\Models\Unit;
+use App\Modules\Inventory\Warehouse\Models\Warehouse;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -41,6 +44,12 @@ class CoreSeeder extends Seeder
             ['key' => 'create-user', 'name' => 'Create User', 'module' => 'core'],
             ['key' => 'edit-user', 'name' => 'Edit User', 'module' => 'core'],
             ['key' => 'delete-user', 'name' => 'Delete User', 'module' => 'core'],
+            ['key' => 'create-role', 'name' => 'Create Role', 'module' => 'core'],
+            ['key' => 'edit-role', 'name' => 'Edit Role', 'module' => 'core'],
+
+            ['key' => 'view-organization', 'name' => 'View Organization', 'module' => 'core'],
+            ['key' => 'create-organization', 'name' => 'Create Organization', 'module' => 'core'],
+            ['key' => 'edit-organization', 'name' => 'Edit Organization', 'module' => 'core'],
 
             ['key' => 'view-item', 'name' => 'View Item', 'module' => 'inventory'],
             ['key' => 'create-item', 'name' => 'Create Item', 'module' => 'inventory'],
@@ -54,6 +63,36 @@ class CoreSeeder extends Seeder
                 $permission
             );
         }
+
+        Unit::firstOrCreate(
+            ['code' => 'PCS'],
+            [
+                'name' => 'Pieces',
+                'precision' => 0,
+                'is_active' => true,
+            ]
+        );
+
+        ItemCategory::firstOrCreate(
+            ['code' => 'GENERAL'],
+            [
+                'name' => 'General',
+                'description' => 'Default item category',
+                'is_active' => true,
+            ]
+        );
+
+        Warehouse::firstOrCreate(
+            [
+                'company_id' => $company->id,
+                'code' => 'MAIN',
+            ],
+            [
+                'name' => 'Main Warehouse',
+                'address' => 'Indonesia',
+                'is_active' => true,
+            ]
+        );
 
         $adminRole = Role::firstOrCreate(
             ['key' => 'super-admin'],

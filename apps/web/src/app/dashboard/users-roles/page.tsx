@@ -72,8 +72,14 @@ type User = {
   is_active: boolean;
   company_id: number | null;
   department_id: number | null;
+  position_id: number | null;
   company: Company | null;
   department: Omit<Department, "company_id"> | null;
+  position: {
+    id: number;
+    code: string;
+    name: string;
+  } | null;
   roles: Pick<Role, "id" | "key" | "name">[];
 };
 
@@ -83,6 +89,12 @@ type UsersRolesResponse = {
   permissions: Permission[];
   companies: Company[];
   departments: Department[];
+  positions: {
+    id: number;
+    department_id: number | null;
+    code: string;
+    name: string;
+  }[];
 };
 
 type UserForm = {
@@ -92,6 +104,7 @@ type UserForm = {
   password: string;
   company_id: string;
   department_id: string;
+  position_id: string;
   is_active: boolean;
   role_ids: number[];
 };
@@ -111,6 +124,7 @@ const emptyUserForm: UserForm = {
   password: "",
   company_id: "",
   department_id: "",
+  position_id: "",
   is_active: true,
   role_ids: [],
 };
@@ -225,6 +239,7 @@ export default function UsersRolesPage() {
       password: "",
       company_id: user.company_id ? String(user.company_id) : "",
       department_id: user.department_id ? String(user.department_id) : "",
+      position_id: user.position_id ? String(user.position_id) : "",
       is_active: user.is_active,
       role_ids: user.roles.map((role) => role.id),
     });
@@ -270,6 +285,7 @@ export default function UsersRolesPage() {
         department_id: userForm.department_id
           ? Number(userForm.department_id)
           : null,
+        position_id: userForm.position_id ? Number(userForm.position_id) : null,
         is_active: userForm.is_active,
         role_ids: userForm.role_ids,
       };
@@ -360,6 +376,7 @@ export default function UsersRolesPage() {
             {user.department && (
               <div className="text-xs">{user.department.name}</div>
             )}
+            {user.position && <div className="text-xs">{user.position.name}</div>}
           </div>
         ),
       },
@@ -710,6 +727,7 @@ export default function UsersRolesPage() {
                       ...form,
                       company_id: event.target.value,
                       department_id: "",
+                      position_id: "",
                     }))
                   }
                 >
@@ -731,6 +749,7 @@ export default function UsersRolesPage() {
                     setUserForm((form) => ({
                       ...form,
                       department_id: event.target.value,
+                      position_id: "",
                     }))
                   }
                 >
@@ -744,6 +763,33 @@ export default function UsersRolesPage() {
                     .map((department) => (
                       <option key={department.id} value={department.id}>
                         {department.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="user-position">Position</Label>
+                <select
+                  id="user-position"
+                  className="h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm"
+                  value={userForm.position_id}
+                  onChange={(event) =>
+                    setUserForm((form) => ({
+                      ...form,
+                      position_id: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="">No position</option>
+                  {data?.positions
+                    .filter(
+                      (position) =>
+                        !userForm.department_id ||
+                        position.department_id === Number(userForm.department_id),
+                    )
+                    .map((position) => (
+                      <option key={position.id} value={position.id}>
+                        {position.name}
                       </option>
                     ))}
                 </select>

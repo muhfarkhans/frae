@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Modules\Core\Company\Models\Company;
 use App\Modules\Core\Department\Models\Department;
+use App\Modules\Core\Position\Models\Position;
 use App\Modules\Core\Role\Models\Role;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -53,12 +54,33 @@ class User extends Authenticatable
         return $this->belongsTo(Department::class);
     }
 
+    public function position()
+    {
+        return $this->belongsTo(Position::class);
+    }
+
     public function hasPermission(string $permission): bool
     {
+        if ($this->roles()->where('key', 'super-admin')->where('is_active', true)->exists()) {
+            return true;
+        }
+
         return $this->roles()
+            ->where('is_active', true)
             ->whereHas('permissions', function ($query) use ($permission) {
                 $query->where('key', $permission);
             })
             ->exists();
+    }
+
+    public function permissionKeys()
+    {
+        return $this->roles()
+            ->where('is_active', true)
+            ->with('permissions:id,key')
+            ->get()
+            ->flatMap(fn (Role $role) => $role->permissions->pluck('key'))
+            ->unique()
+            ->values();
     }
 }

@@ -1,21 +1,19 @@
 <?php
 
-namespace App\Modules\Core\Company\Models;
+namespace App\Modules\Core\Position\Models;
 
 use App\Modules\Core\Department\Models\Department;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Company extends Model
+class Position extends Model
 {
     use SoftDeletes;
 
     protected $fillable = [
+        'department_id',
         'code',
         'name',
-        'address',
-        'phone',
-        'email',
         'is_active',
     ];
 
@@ -23,8 +21,8 @@ class Company extends Model
         'is_active' => 'boolean',
     ];
 
-    public function departments()
+    public function department()
     {
-        return $this->hasMany(Department::class);
+        return $this->belongsTo(Department::class);
     }
 }

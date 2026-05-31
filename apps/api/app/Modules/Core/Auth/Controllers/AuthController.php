@@ -33,6 +33,8 @@ class AuthController extends Controller
 
         $token = $user->createToken('erp-api-token')->plainTextToken;
 
+        $user->load('roles.permissions');
+
         return response()->json([
             'message' => 'Login berhasil.',
             'token' => $token,
@@ -40,14 +42,25 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'permissions' => $user->permissionKeys(),
             ],
         ]);
     }
 
     public function me(Request $request)
     {
+        $user = $request->user()->load('roles.permissions');
+
         return response()->json([
-            'user' => $request->user(),
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'company_id' => $user->company_id,
+                'department_id' => $user->department_id,
+                'position_id' => $user->position_id,
+                'permissions' => $user->permissionKeys(),
+            ],
         ]);
     }
 

@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Modules\Core\Company\Models\Company;
 use App\Modules\Core\Department\Models\Department;
 use App\Modules\Core\Permission\Models\Permission;
+use App\Modules\Core\Position\Models\Position;
 use App\Modules\Core\Role\Models\Role;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,7 @@ class UserRoleController extends Controller
     {
         return response()->json([
             'users' => User::query()
-                ->with(['company:id,code,name', 'department:id,code,name', 'roles:id,key,name'])
+                ->with(['company:id,code,name', 'department:id,code,name', 'position:id,code,name', 'roles:id,key,name'])
                 ->orderBy('name')
                 ->get()
                 ->map(fn (User $user) => [
@@ -28,6 +29,7 @@ class UserRoleController extends Controller
                     'is_active' => $user->is_active,
                     'company_id' => $user->company_id,
                     'department_id' => $user->department_id,
+                    'position_id' => $user->position_id,
                     'company' => $user->company ? [
                         'id' => $user->company->id,
                         'code' => $user->company->code,
@@ -37,6 +39,11 @@ class UserRoleController extends Controller
                         'id' => $user->department->id,
                         'code' => $user->department->code,
                         'name' => $user->department->name,
+                    ] : null,
+                    'position' => $user->position ? [
+                        'id' => $user->position->id,
+                        'code' => $user->position->code,
+                        'name' => $user->position->name,
                     ] : null,
                     'roles' => $user->roles->map(fn (Role $role) => [
                         'id' => $role->id,
@@ -76,6 +83,10 @@ class UserRoleController extends Controller
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'company_id', 'code', 'name']),
+            'positions' => Position::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'department_id', 'code', 'name']),
         ]);
     }
 
@@ -86,7 +97,16 @@ class UserRoleController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
             'company_id' => ['nullable', 'exists:companies,id'],
-            'department_id' => ['nullable', 'exists:departments,id'],
+            'department_id' => [
+                'nullable',
+                Rule::exists('departments', 'id')
+                    ->where('company_id', $request->input('company_id')),
+            ],
+            'position_id' => [
+                'nullable',
+                Rule::exists('positions', 'id')
+                    ->where('department_id', $request->input('department_id')),
+            ],
             'is_active' => ['required', 'boolean'],
             'role_ids' => ['array'],
             'role_ids.*' => ['integer', 'exists:roles,id'],
@@ -113,7 +133,16 @@ class UserRoleController extends Controller
             ],
             'password' => ['nullable', 'string', 'min:8'],
             'company_id' => ['nullable', 'exists:companies,id'],
-            'department_id' => ['nullable', 'exists:departments,id'],
+            'department_id' => [
+                'nullable',
+                Rule::exists('departments', 'id')
+                    ->where('company_id', $request->input('company_id')),
+            ],
+            'position_id' => [
+                'nullable',
+                Rule::exists('positions', 'id')
+                    ->where('department_id', $request->input('department_id')),
+            ],
             'is_active' => ['required', 'boolean'],
             'role_ids' => ['array'],
             'role_ids.*' => ['integer', 'exists:roles,id'],

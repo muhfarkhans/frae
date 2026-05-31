@@ -3,6 +3,7 @@
 namespace App\Modules\Core\Department\Models;
 
 use App\Modules\Core\Company\Models\Company;
+use App\Modules\Core\Position\Models\Position;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -24,5 +25,10 @@ class Department extends Model
     public function company()
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function positions()
+    {
+        return $this->hasMany(Position::class);
     }
 }

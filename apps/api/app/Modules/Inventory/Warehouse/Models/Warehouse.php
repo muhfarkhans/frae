@@ -1,21 +1,20 @@
 <?php
 
-namespace App\Modules\Core\Company\Models;
+namespace App\Modules\Inventory\Warehouse\Models;
 
-use App\Modules\Core\Department\Models\Department;
+use App\Modules\Core\Company\Models\Company;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Company extends Model
+class Warehouse extends Model
 {
     use SoftDeletes;
 
     protected $fillable = [
+        'company_id',
         'code',
         'name',
         'address',
-        'phone',
-        'email',
         'is_active',
     ];
 
@@ -23,8 +22,8 @@ class Company extends Model
         'is_active' => 'boolean',
     ];
 
-    public function departments()
+    public function company()
     {
-        return $this->hasMany(Department::class);
+        return $this->belongsTo(Company::class);
     }
 }
