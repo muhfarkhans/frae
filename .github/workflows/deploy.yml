@@ -29,8 +29,9 @@ jobs:
 
             cd ${{ secrets.VPS_PROJECT_PATH }}
 
-            echo "Pull latest code..."
-            git pull origin master
+            echo "Reset code to latest master..."
+            git fetch origin master
+            git reset --hard origin/master
 
             echo "Build containers..."
             docker compose build
