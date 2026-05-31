@@ -44,13 +44,7 @@ frae/
 
 ## Menjalankan Project
 
-1. Jalankan semua container.
-
-```bash
-docker compose up -d
-```
-
-2. Siapkan root environment Docker Compose jika belum ada.
+1. Siapkan root environment Docker Compose jika belum ada.
 
 ```bash
 cp .env.example .env
@@ -67,6 +61,20 @@ MINIO_ROOT_PASSWORD=isi-password-minio-kuat
 ```
 
 File root `.env` tidak ikut commit karena sudah masuk `.gitignore`.
+
+2. Jalankan mode development dengan hot reload.
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+```
+
+Mode ini memakai `apps/web/Dockerfile.dev`, menjalankan `npm run dev`, dan mount `apps/web` ke container sehingga perubahan frontend langsung terbaca.
+
+Untuk menjalankan mode production-like lokal tanpa hot reload:
+
+```bash
+docker compose up -d --build
+```
 
 3. Siapkan environment Laravel jika belum ada.
 
