@@ -6,10 +6,6 @@ services:
     container_name: erp_web
     ports:
       - "3000:3000"
-    volumes:
-      - ./apps/web:/app
-      - /app/node_modules
-      - /app/.next
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://frae-api.cojimozy.com/api}
       API_INTERNAL_URL: ${API_INTERNAL_URL:-https://frae-api.cojimozy.com/api}
